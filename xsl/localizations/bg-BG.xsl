@@ -63,6 +63,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <localization string-id='volume'><xsl:text>Том</xsl:text></localization>
     <localization string-id='book'><xsl:text>Книга</xsl:text></localization>
     <localization string-id='article'><xsl:text>Статия</xsl:text></localization>
+    <!-- <localization string-id='slideshow'><xsl:text>Slideshow</xsl:text></localization> -->
     <localization string-id='letter'><xsl:text>Писмо</xsl:text></localization>
     <localization string-id='memo'><xsl:text>Паметна записка</xsl:text></localization>
     <localization string-id='presentation'><xsl:text>Презентация</xsl:text></localization>
@@ -75,6 +76,8 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <localization string-id='section'><xsl:text>Параграф</xsl:text></localization>
     <localization string-id='subsection'><xsl:text>Точка</xsl:text></localization>
     <localization string-id='subsubsection'><xsl:text>Подточка</xsl:text></localization>
+    <!-- A "slide" is a screenful of a presentation (Powerpoint, Beamer) -->
+    <!-- <localization string-id='slide'><xsl:text>Slide</xsl:text></localization> -->
     <localization string-id='introduction'><xsl:text>Увод</xsl:text></localization>
     <localization string-id='conclusion'><xsl:text>Заключение</xsl:text></localization>
     <localization string-id='exercises'><xsl:text>Упражнения</xsl:text></localization>
@@ -149,7 +152,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!-- A regular paragraph, not the old sectioning structure -->
     <localization string-id='p'><xsl:text>Абзац</xsl:text></localization>
     <localization string-id='blockquote'><xsl:text>Цитат</xsl:text></localization>
-    <!-- Parts of an exercise and it's solution -->
+    <!-- Parts of an exercise and its solution -->
     <!-- An "exercise", at any level, within an "exercises" division is a          -->
     <!-- "divisional" exercise and the string employed is 'divisionalexercise'.    -->
     <!-- An "exercise" whose parent is a division (chapter, section, etc) we       -->
@@ -164,7 +167,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!-- In English, an "Exercise" is something you do that has a beneficial       -->
     <!-- outcome, such as "I am going to the gym to exercise."  A "Checkpoint"     -->
     <!-- is something you must do before you do something else.  Another use of    -->
-    <!-- the term is a location on a on a roadway where you must stop for the      -->
+    <!-- the term is a location on a roadway where you must stop for the      -->
     <!-- police to do an inspection. A worksheet is a collection of activities or  -->
     <!-- problems, typically printed on paper, which might be used in a classroom. -->
     <localization string-id='divisionalexercise'><xsl:text>Упражнение</xsl:text></localization>

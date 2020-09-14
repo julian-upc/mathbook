@@ -117,12 +117,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!-- early or late                          -->
 <xsl:param name="latex.preamble.early" select="''" />
 <xsl:param name="latex.preamble.late" select="''" />
-<!--  -->
-<!-- DEPRECATED: 2017-12-18, do not use, any value -->
-<!-- besides an empty string will raise a warning  -->
-<xsl:param name="latex.console.macro-char" select="''" />
-<xsl:param name="latex.console.begin-char" select="''" />
-<xsl:param name="latex.console.end-char" select="''" />
 
 
 <!-- ############### -->
@@ -157,11 +151,9 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!-- Variables that affect LaTeX creation -->
 <!-- More in the -common file             -->
 
-<!-- LaTeX is handled natively, so we flip a  -->
-<!-- switch here to signal the general text() -->
-<!-- handler in xsl/pretext-common.xsl to    -->
-<!-- not dress-up clause-ending punctuation   -->
-<xsl:variable name="latex-processing" select="'native'" />
+<!-- Search for the "math.punctuation.include" -->
+<!-- global variable, which is discussed in    -->
+<!-- closer proximity to its application.      -->
 
 <!-- Not a parameter, a variable to override deliberately within a conversion -->
 <xsl:variable name="b-latex-hardcode-numbers" select="false()"/>
@@ -201,7 +193,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <xsl:variable name="chunk-level">
     <xsl:choose>
         <xsl:when test="$chunk.level != ''">
-            <xsl:message terminate="yes">MBX:ERROR:   chunking of LaTeX output is deprecated as of 2016-06-10, remove the "chunk.level" stringparam</xsl:message>
+            <xsl:message>MBX:ERROR:   chunking of LaTeX output is deprecated as of 2016-06-10, remove the "chunk.level" stringparam</xsl:message>
         </xsl:when>
         <xsl:otherwise>
             <xsl:text>0</xsl:text>
@@ -270,7 +262,8 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
         <xsl:when test="$latex.font.size='17pt'"><xsl:value-of select="$latex.font.size" /></xsl:when>
         <xsl:when test="$latex.font.size='20pt'"><xsl:value-of select="$latex.font.size" /></xsl:when>
         <xsl:otherwise>
-            <xsl:message terminate="yes">MBX:ERROR   the latex.font.size parameter must be 8pt, 9pt, 10pt, 11pt, 12pt, 14pt, 17pt, or 20pt, not "<xsl:value-of select="$latex.font.size" />"</xsl:message>
+            <xsl:text>10pt</xsl:text>
+            <xsl:message>MBX:ERROR   the latex.font.size parameter must be 8pt, 9pt, 10pt, 11pt, 12pt, 14pt, 17pt, or 20pt, not "<xsl:value-of select="$latex.font.size" />".  Using the default ('10pt')</xsl:message>
         </xsl:otherwise>
     </xsl:choose>
 </xsl:variable>
@@ -736,6 +729,10 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
             <xsl:text>%% document language code is "vi-VN", Vietnamese&#xa;</xsl:text>
             <xsl:text>\setmainlanguage{vietnamese}&#xa;</xsl:text>
         </xsl:when>
+        <xsl:when test="$document-language = 'it-IT'">
+            <xsl:text>%% document language code is "it-IT", Italian&#xa;</xsl:text>
+            <xsl:text>\setmainlanguage{italian}&#xa;</xsl:text>
+        </xsl:when>
     </xsl:choose>
     <xsl:text>%% Enable secondary languages based on discovery of @xml:lang values&#xa;</xsl:text>
     <!-- secondary: so not already "main", and look just beyond $document-root (eg "book") -->
@@ -809,6 +806,12 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!--  -->
     <xsl:text>%% end:   font setup and configuration for use with pdflatex&#xa;</xsl:text>
     <xsl:text>}&#xa;</xsl:text>
+    <xsl:text>%% Micromanage spacing, etc.  The named "microtype-options"&#xa;</xsl:text>
+    <xsl:text>%% template may be employed to fine-tune package behavior&#xa;</xsl:text>
+    <xsl:text>\usepackage</xsl:text>
+    <!-- This template supplies [] w options iff there really are options -->
+    <xsl:call-template name="microtype-option-argument"/>
+    <xsl:text>{microtype}&#xa;</xsl:text>
     <!--  -->
     <!--  -->
     <xsl:text>%% Symbols, align environment, commutative diagrams, bracket-matrix&#xa;</xsl:text>
@@ -1059,7 +1062,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                 <xsl:text>}&#xa;</xsl:text>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:message terminate="yes">MBX:ERROR: invalid value <xsl:value-of select="$latex.fillin.style" /> for latex.fillin.style stringparam. Should be 'underline' or 'box'.</xsl:message>
+                <xsl:message>MBX:ERROR:   the latex.fillin.style parameter should be 'underline' or 'box', not '<xsl:value-of select="$latex.fillin.style"/>'.  Using the default ('underline').</xsl:message>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:if>
@@ -1184,6 +1187,9 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!-- TODO: condition of figure/*/figure-like, or $subfigure-reps -->
     <xsl:text>%% A faux tcolorbox whose only purpose is to provide common numbering&#xa;</xsl:text>
     <xsl:text>%% facilities for 2D displays which are subnumbered as part of a "sidebyside"&#xa;</xsl:text>
+    <!-- faux subdisplay requires manipulating low-level counters -->
+    <!-- TODO: condition on presence of (plain) 2-D displays to limit use? -->
+    <xsl:text>\makeatletter&#xa;</xsl:text>
     <xsl:text>\newtcolorbox[auto counter</xsl:text>
     <!-- control the levels of the numbering -->
     <!-- global (no periods) is the default  -->
@@ -1198,7 +1204,9 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     </xsl:choose>
     <xsl:text>, number freestyle={\noexpand\thetcb@cnt@block(\noexpand\alph{\tcbcounter})}</xsl:text>
     <xsl:text>]{subdisplay}{}&#xa;</xsl:text>
-    <!-- Groups of environments/blocks -->
+    <!-- faux subdisplay requires manipulating low-level counters -->
+    <xsl:text>\makeatother&#xa;</xsl:text>
+   <!-- Groups of environments/blocks -->
     <!-- Variables hold exactly one node of each type in use -->
     <!-- "environment" template constructs...environments -->
     <!-- THEOREM-LIKE -->
@@ -1340,12 +1348,14 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
         <xsl:apply-templates select="." mode="environment"/>
     </xsl:for-each>
     <!-- FIGURE-LIKE -->
-    <!-- subcaptioned are separate -->
+    <!-- subcaptioned are separate and next, condition on "figure"   -->
+    <!-- ancestor to not mistakenly pick up a 'subtable' (say) here  -->
+    <!-- instead of a 'plain' table (which was once a bug)           -->
     <xsl:variable name="figure-reps" select="
-        ($document-root//figure)[1]|
-        ($document-root//table)[1]|
-        ($document-root//listing)[1]|
-        ($document-root//list)[1]"/>
+        ($document-root//figure[not(ancestor::figure)])[1]|
+        ($document-root//table[not(ancestor::figure)])[1]|
+        ($document-root//listing[not(ancestor::figure)])[1]|
+        ($document-root//list[not(ancestor::figure)])[1]"/>
     <xsl:if test="$figure-reps">
         <xsl:text>%%&#xa;</xsl:text>
         <xsl:text>%% tcolorbox, with styles, for FIGURE-LIKE&#xa;</xsl:text>
@@ -1728,34 +1738,17 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!-- Music -->
     <xsl:if test="$document-root//flat | $document-root//doubleflat | $document-root//sharp | $document-root//doublesharp | $document-root//natural | $document-root//n | $document-root//scaledeg | $document-root//chord">
         <xsl:text>%% Musical Symbol Support&#xa;</xsl:text>
-        <xsl:text>\ifthenelse{\boolean{xetex}}{&#xa;</xsl:text>
-        <xsl:text>%% begin: xelatex-specific configuration&#xa;</xsl:text>
-        <xsl:text>%% lilyglyphs.sty in Ubuntu/Debian texlive-music&#xa;</xsl:text>
-        <xsl:text>\usepackage{lilyglyphs}&#xa;</xsl:text>
-        <xsl:text>\lilyGlobalOptions{scale=0.8}&#xa;</xsl:text>
-        <!-- Create alias to lilyglyphs command with common name -->
-        <xsl:text>\newcommand*{\doubleflat}{\flatflat}&#xa;</xsl:text>
-        <xsl:text>%% end: xelatex-specific configuration&#xa;</xsl:text>
-        <xsl:text>}{&#xa;</xsl:text>
-        <xsl:text>%% begin: pdflatex-specific configuration&#xa;</xsl:text>
-        <!-- Pulling accidentals from "musixtex" font -->
-        <!-- http://tex.stackexchange.com/questions/207261/how-do-i-produce-a-double-flat-symbol-edit -->
-        <xsl:text>\DeclareFontFamily{U}{musix}{}%&#xa;</xsl:text>
-        <xsl:text>\DeclareFontShape{U}{musix}{m}{n}{%&#xa;</xsl:text>
-        <xsl:text>&lt;-12&gt;   musix11&#xa;</xsl:text>
-        <xsl:text>&lt;12-15&gt; musix13&#xa;</xsl:text>
-        <xsl:text>&lt;15-18&gt; musix16&#xa;</xsl:text>
-        <xsl:text>&lt;18-23&gt; musix20&#xa;</xsl:text>
-        <xsl:text>&lt;23-&gt;   musix29&#xa;</xsl:text>
-        <xsl:text>}{}%&#xa;</xsl:text>
-        <xsl:text>%% We grab all five accidentals from the musix font so they are usable in both math and text mode&#xa;</xsl:text>
-        <xsl:text>\renewcommand*\flat{\raisebox{0.5ex}{\usefont{U}{musix}{m}{n}\selectfont{2}}}&#xa;</xsl:text>
-        <xsl:text>\newcommand*\doubleflat{\raisebox{0.5ex}{\usefont{U}{musix}{m}{n}\selectfont{3}}}&#xa;</xsl:text>
-        <xsl:text>\renewcommand*\sharp{\raisebox{0.5ex}{\usefont{U}{musix}{m}{n}\selectfont{4}}}&#xa;</xsl:text>
-        <xsl:text>\newcommand*\doublesharp{\raisebox{0.5ex}{\usefont{U}{musix}{m}{n}\selectfont{5}}}&#xa;</xsl:text>
-        <xsl:text>\renewcommand*\natural{\raisebox{0.5ex}{\usefont{U}{musix}{m}{n}\selectfont{6}}}&#xa;</xsl:text>
-        <xsl:text>%% end: pdflatex-specific configuration&#xa;</xsl:text>
-        <xsl:text>}&#xa;</xsl:text>
+        <xsl:text>%% The musicography package builds on the "musix" fonts and&#xa;</xsl:text>
+        <xsl:text>%% provides music notation for use with both pdflatex and xelatex&#xa;</xsl:text>
+        <xsl:text>%% For Ubuntu/Debian use the  texlive-music  package&#xa;</xsl:text>
+        <!-- Note: package's shorthand macros  \fl, \sh, \na  might conflict with authors' macros? -->
+        <xsl:text>\usepackage{musicography}&#xa;</xsl:text>
+        <xsl:text>\renewcommand{\flat}{\musFlat}&#xa;</xsl:text>
+        <xsl:text>\newcommand{\doubleflat}{\musDoubleFlat}&#xa;</xsl:text>
+        <xsl:text>\renewcommand{\sharp}{\musSharp}&#xa;</xsl:text>
+        <xsl:text>\newcommand{\doublesharp}{\musDoubleSharp}&#xa;</xsl:text>
+        <xsl:text>\renewcommand{\natural}{\musNatural}&#xa;</xsl:text>
+        <xsl:text>%%&#xa;</xsl:text>
     </xsl:if>
     <!-- Inconsolata font, sponsored by TUG: http://levien.com/type/myfonts/inconsolata.html            -->
     <!-- As seen on: http://tex.stackexchange.com/questions/50810/good-monospace-font-for-code-in-latex -->
@@ -2940,6 +2933,10 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:text>style/.style={</xsl:text>
     <xsl:apply-templates select="." mode="tcb-style"/>
     <xsl:text>} }&#xa;</xsl:text>
+    <!-- subnumbered version requires manipulating low-level counters -->
+    <xsl:if test="$b-subcaptioned">
+        <xsl:text>\makeatletter&#xa;</xsl:text>
+    </xsl:if>
     <!-- create and configure the environment/tcolorbox -->
     <xsl:text>\newtcolorbox</xsl:text>
     <xsl:text>[</xsl:text>
@@ -3038,6 +3035,10 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:value-of select="$environment-name"/>
     <xsl:text>style, }&#xa;</xsl:text>
     <!-- end: options -->
+    <!-- subnumbered version requires manipulating low-level counters -->
+    <xsl:if test="$b-subcaptioned">
+        <xsl:text>\makeatother&#xa;</xsl:text>
+    </xsl:if>
 </xsl:template>
 
 <!-- ########################## -->
@@ -3590,6 +3591,24 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!-- <xsl:text>\renewcommand{\divisionfont}{\lmsansserif}&#xa;</xsl:text> -->
 </xsl:template>
 
+<!-- This template calls the "microtype-options" template, but     -->
+<!-- uses a variable to not produce an empty [ ].  Thus two        -->
+<!-- templates. This one is internal, not for a stylewriter's use. -->
+<xsl:template name="microtype-option-argument">
+    <xsl:variable name="the-options">
+        <xsl:call-template name="microtype-options"/>
+    </xsl:variable>
+    <xsl:if test="not($the-options = '')">
+        <xsl:text>[</xsl:text>
+        <xsl:value-of select="$the-options"/>
+        <xsl:text>]</xsl:text>
+    </xsl:if>
+</xsl:template>
+
+<!-- This is the template a stylewriter can override to influence fonts. -->
+<!-- See the documentation for the  microtype  package for details.      -->
+<xsl:template name="microtype-options"/>
+
 
 <!-- ################## -->
 <!-- End: LaTeX Styling -->
@@ -3636,7 +3655,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 
 <!-- "half-title" is leading page with -->
 <!-- title only, at about 1:2 split    -->
-<xsl:template match="book" mode="half-title" >
+<xsl:template match="book" mode="half-title-ad-card" >
     <xsl:text>%% begin: half-title&#xa;</xsl:text>
     <xsl:text>\thispagestyle{empty}&#xa;</xsl:text>
     <xsl:text>{\titlepagefont\centering&#xa;</xsl:text>
@@ -3653,19 +3672,45 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:text>}&#xa;</xsl:text> <!-- finish centering, title page font -->
     <xsl:text>\clearpage&#xa;</xsl:text>
     <xsl:text>%% end:   half-title&#xa;</xsl:text>
+    <!-- ad-card may very well be blank, and otherwise -->
+    <!-- requires some customization                   -->
+    <xsl:variable name="the-ad-card">
+        <xsl:apply-templates select="." mode="ad-card"/>
+    </xsl:variable>
+    <xsl:choose>
+        <!-- Additional page for non-empty ad-card, -->
+        <!-- sideness is irrelevant                 -->
+        <xsl:when test="not($the-ad-card = '')">
+            <xsl:text>%% begin: adcard&#xa;</xsl:text>
+            <xsl:value-of select="$the-ad-card"/>
+            <xsl:text>\clearpage&#xa;</xsl:text>
+            <xsl:text>%% end:   adcard&#xa;</xsl:text>
+        </xsl:when>
+        <!-- need an empty page, obverse of half-title    -->
+        <!-- could also be left-side of title page spread -->
+        <xsl:when test="$latex-sides = 'two'">
+            <xsl:text>%% begin: adcard (empty)&#xa;</xsl:text>
+            <xsl:text>\thispagestyle{empty}&#xa;</xsl:text>
+            <xsl:text>\null%&#xa;</xsl:text>
+            <xsl:text>\clearpage&#xa;</xsl:text>
+            <xsl:text>%% end:   adcard (empty)&#xa;</xsl:text>
+        </xsl:when>
+        <!-- no content, and one-sided, do nothing -->
+        <xsl:otherwise/>
+    </xsl:choose>
 </xsl:template>
 
-<!-- Ad card may contain list of other books        -->
-<!-- Or may be overridden to make title page spread -->
-<!-- Obverse of half-title                          -->
-<!-- Use \titlepagefont if overidden                -->
-<xsl:template match="book" mode="ad-card">
-    <xsl:text>%% begin: adcard&#xa;</xsl:text>
-    <xsl:text>\thispagestyle{empty}&#xa;</xsl:text>
-    <xsl:text>\null%&#xa;</xsl:text>
-    <xsl:text>\clearpage&#xa;</xsl:text>
-    <xsl:text>%% end:   adcard&#xa;</xsl:text>
-</xsl:template>
+<!-- Ad card is the obverse of half-title, and may contain a list -->
+<!-- of other books by the author, or in a two-sided version, it  -->
+<!-- can be used as the left-side of a title page spread.  Send   -->
+<!-- a feature request if you need/want both. This template is as -->
+<!-- a hook meant to be overidden as part of custom XSL provided  -->
+<!-- by a knowledgeable publisher, so empty in typical use.  When -->
+<!-- overridden, it should produce a complete page, but without   -->
+<!-- a \clearpage at the bottom, that happens automatically.      -->
+<!-- The macro \titlepagefont can be used (scoped to the page)    -->
+<!-- for harmony with the actual title page, which appears next.  -->
+<xsl:template match="book" mode="ad-card"/>
 
 <!-- LaTeX's title page is not very robust, so we totally redo it         -->
 <!-- Template produces a single page, followed by a \clearpage            -->
@@ -3781,10 +3826,14 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:text>}\\</xsl:text>
 </xsl:template>
 
-<!-- Copyright page is obverse of title page  -->
-<!-- Lots of stuff here, much of it optional  -->
-<!-- But we always write something            -->
-<!-- as the obverse of title page             -->
+<!-- Copyright page is obverse of title page    -->
+<!-- Lots of stuff here, much of it optional    -->
+<!-- But we assume an author eventually states  -->
+<!-- their copyright, so do not handle the case -->
+<!-- of this content ever being empty (such as  -->
+<!-- with the ad-card).  So a LaTeX label is OK -->
+<!-- as well.  A final "\null" is just          -->
+<!-- protection for a non-mature project.       -->
 <xsl:template match="book" mode="copyright-page" >
     <!-- TODO: split out sections like "website" -->
     <!-- ISBN, Cover Design, Publisher -->
@@ -4018,13 +4067,12 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!-- Not structural, titlepage element is just a signal -->
 <!-- Includes items from the colophon                   -->
 <xsl:template match="book/frontmatter/titlepage">
-    <!-- first page, title only -->
-    <xsl:apply-templates select="../.." mode="half-title" />
-    <!-- Obverse of half-title is adcard -->
-    <xsl:apply-templates select="../.." mode="ad-card" />
+    <!-- first page, half-title only; obverse -->
+    <!-- of half-title is possible adcard     -->
+    <xsl:apply-templates select="../.." mode="half-title-ad-card" />
     <!-- title page -->
     <xsl:apply-templates select="../.." mode="title-page" />
-    <!-- title page obverse is copyright, possibly empty -->
+    <!-- title page obverse is copyright, assumed non-empty -->
     <xsl:apply-templates select="../.." mode="copyright-page" />
     <!-- long biographies come earliest, since normally on copyright page -->
     <!-- short biographies are part of the copyright-page template        -->
@@ -4100,11 +4148,13 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:text>\vspace*{\stretch{2}}&#xa;</xsl:text>
     <xsl:text>\clearpage&#xa;</xsl:text>
     <xsl:text>%% end:   dedication-page&#xa;</xsl:text>
-    <xsl:text>%% begin: obverse-dedication-page (empty)&#xa;</xsl:text>
-    <xsl:text>\thispagestyle{empty}&#xa;</xsl:text>
-    <xsl:text>\null%&#xa;</xsl:text>
-    <xsl:text>\clearpage&#xa;</xsl:text>
-    <xsl:text>%% end:   obverse-dedication-page&#xa;</xsl:text>
+    <xsl:if test="$latex-sides = 'two'">
+        <xsl:text>%% begin: obverse-dedication-page (empty)&#xa;</xsl:text>
+        <xsl:text>\thispagestyle{empty}&#xa;</xsl:text>
+        <xsl:text>\null%&#xa;</xsl:text>
+        <xsl:text>\clearpage&#xa;</xsl:text>
+        <xsl:text>%% end:   obverse-dedication-page (empty)&#xa;</xsl:text>
+    </xsl:if>
 </xsl:template>
 
 <!-- Dedications are meant to be very short      -->
@@ -4280,7 +4330,14 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!-- The back colophon of a book goes on its own recto page -->
 <!-- The "backcolophon" environment is a tcolorbox          -->
 <xsl:template match="book/backmatter/colophon">
-    <xsl:text>\cleardoublepage&#xa;</xsl:text>
+    <xsl:choose>
+        <xsl:when test="$latex-sides = 'two'">
+            <xsl:text>\cleardoublepage&#xa;</xsl:text>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:text>\clearpage&#xa;</xsl:text>
+        </xsl:otherwise>
+    </xsl:choose>
     <xsl:text>\pagestyle{empty}&#xa;</xsl:text>
     <xsl:text>\vspace*{\stretch{1}}&#xa;</xsl:text>
     <xsl:text>\begin{backcolophon}</xsl:text>
@@ -4414,7 +4471,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!-- $b-has-heading will always be "false" in these situations.     -->
 <!-- TODO: this could be an xparse environment, perhaps -->
 <!-- with a key indicating fontsize or division level   -->
-<xsl:template match="book|article|chapter|section|subsection|subsubsection|exercises|worksheet|reading-questions" mode="division-in-solutions">
+<xsl:template match="book|article|part|chapter|section|subsection|subsubsection|exercises|worksheet|reading-questions" mode="division-in-solutions">
     <xsl:param name="scope" />
     <xsl:param name="b-has-heading"/>
     <xsl:param name="content" />
@@ -4450,7 +4507,9 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
             </xsl:choose>
         </xsl:variable>
 
-        <!-- Does the current division get a number at birth? -->
+        <!-- Is the current division part of a structured division  -->
+        <!-- and hence display its number at birth?  (Not as simple -->
+        <!-- as: does it *have* a number?)                          -->
         <xsl:variable name="is-structured">
             <xsl:apply-templates select="parent::*" mode="is-structured-division"/>
         </xsl:variable>
@@ -5246,7 +5305,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                 <xsl:with-param name="b-original" select="true()" />
                 <xsl:with-param name="b-has-statement" select="true()" />
                 <xsl:with-param name="b-has-hint"      select="$b-has-inline-hint" />
-                <!-- 2018-09-21: WW answers may become available -->
                 <xsl:with-param name="b-has-answer"    select="$b-has-inline-answer" />
                 <xsl:with-param name="b-has-solution"  select="$b-has-inline-solution" />
             </xsl:apply-templates>
@@ -5272,6 +5330,24 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
             </xsl:apply-templates>
         </xsl:when>
         <!-- "normal" exercise -->
+        <!-- structured versions first     -->
+        <!-- task+, conclusion?, postlude? -->
+        <xsl:when test="task">
+            <xsl:if test="$b-has-inline-statement">
+                <xsl:apply-templates select="introduction"/>
+            </xsl:if>
+            <xsl:apply-templates select="task">
+                <xsl:with-param name="b-original" select="true()" />
+                <xsl:with-param name="b-has-statement" select="true()" />
+                <xsl:with-param name="b-has-hint"      select="$b-has-inline-hint" />
+                <xsl:with-param name="b-has-answer"    select="$b-has-inline-answer" />
+                <xsl:with-param name="b-has-solution"  select="$b-has-inline-solution" />
+            </xsl:apply-templates>
+            <xsl:if test="$b-has-inline-statement">
+                <xsl:apply-templates select="conclusion"/>
+            </xsl:if>
+        </xsl:when>
+        <!-- Now no task possibility -->
         <xsl:otherwise>
             <xsl:apply-templates select="." mode="exercise-components">
                 <xsl:with-param name="b-original" select="true()" />
@@ -5366,7 +5442,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                     <xsl:with-param name="purpose" select="$purpose" />
                     <xsl:with-param name="b-has-statement" select="$b-has-statement" />
                     <xsl:with-param name="b-has-hint"      select="$b-has-hint" />
-                    <!-- 2018-09-21: WW answers may become available -->
                     <xsl:with-param name="b-has-answer"    select="$b-has-answer" />
                     <xsl:with-param name="b-has-solution"  select="$b-has-solution" />
                 </xsl:apply-templates>
@@ -5392,6 +5467,25 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                 </xsl:apply-templates>
             </xsl:when>
             <!-- "normal" exercise -->
+            <!-- structured versions first     -->
+            <!-- task+, conclusion?, postlude? -->
+            <xsl:when test="task">
+                <xsl:if test="$b-has-statement">
+                    <xsl:apply-templates select="introduction"/>
+                </xsl:if>
+                <xsl:apply-templates select="task" mode="solutions">
+                    <xsl:with-param name="b-original" select="false()" />
+                    <xsl:with-param name="purpose" select="$purpose" />
+                    <xsl:with-param name="b-has-statement" select="$b-has-statement" />
+                    <xsl:with-param name="b-has-hint"      select="$b-has-hint" />
+                    <xsl:with-param name="b-has-answer"    select="$b-has-answer" />
+                    <xsl:with-param name="b-has-solution"  select="$b-has-solution" />
+                </xsl:apply-templates>
+                <xsl:if test="$b-has-statement">
+                    <xsl:apply-templates select="conclusion"/>
+                </xsl:if>
+            </xsl:when>
+            <!-- Now no task possibility -->
             <xsl:otherwise>
                 <xsl:apply-templates select="." mode="exercise-components">
                     <xsl:with-param name="b-original" select="false()" />
@@ -5497,7 +5591,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                 <xsl:with-param name="b-original" select="true()" />
                 <xsl:with-param name="b-has-statement" select="$b-has-statement" />
                 <xsl:with-param name="b-has-hint"      select="$b-has-hint" />
-                <!-- 2018-09-21: WW answers may become available -->
                 <xsl:with-param name="b-has-answer"    select="$b-has-answer" />
                 <xsl:with-param name="b-has-solution"  select="$b-has-solution" />
             </xsl:apply-templates>
@@ -5522,6 +5615,24 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
             </xsl:apply-templates>
         </xsl:when>
         <!-- "normal" exercise -->
+        <!-- structured versions first      -->
+        <!-- task+, conclusion?, postlude? -->
+        <xsl:when test="task">
+            <xsl:if test="$b-has-statement">
+                <xsl:apply-templates select="introduction"/>
+            </xsl:if>
+            <xsl:apply-templates select="task">
+                <xsl:with-param name="b-original" select="true()" />
+                <xsl:with-param name="b-has-statement" select="$b-has-statement" />
+                <xsl:with-param name="b-has-hint"      select="$b-has-hint" />
+                <xsl:with-param name="b-has-answer"    select="$b-has-answer" />
+                <xsl:with-param name="b-has-solution"  select="$b-has-solution" />
+            </xsl:apply-templates>
+            <xsl:if test="$b-has-statement">
+                <xsl:apply-templates select="conclusion"/>
+            </xsl:if>
+        </xsl:when>
+        <!-- Now no task possibility -->
         <xsl:otherwise>
             <xsl:apply-templates select="." mode="exercise-components">
                 <xsl:with-param name="b-original" select="true()" />
@@ -5633,7 +5744,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                     <xsl:with-param name="purpose" select="$purpose" />
                     <xsl:with-param name="b-has-statement" select="$b-has-statement" />
                     <xsl:with-param name="b-has-hint"      select="$b-has-hint" />
-                    <!-- 2018-09-21: WW answers may become available -->
                     <xsl:with-param name="b-has-answer"    select="$b-has-answer" />
                     <xsl:with-param name="b-has-solution"  select="$b-has-solution" />
                 </xsl:apply-templates>
@@ -5659,6 +5769,25 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                 </xsl:apply-templates>
             </xsl:when>
             <!-- "normal" exercise -->
+            <!-- structured versions first     -->
+            <!-- task+, conclusion?, postlude? -->
+            <xsl:when test="task">
+                <xsl:if test="$b-has-statement">
+                    <xsl:apply-templates select="introduction"/>
+                </xsl:if>
+                <xsl:apply-templates select="task" mode="solutions">
+                    <xsl:with-param name="b-original" select="false()" />
+                    <xsl:with-param name="purpose" select="$purpose" />
+                    <xsl:with-param name="b-has-statement" select="$b-has-statement" />
+                    <xsl:with-param name="b-has-hint"      select="$b-has-hint" />
+                    <xsl:with-param name="b-has-answer"    select="$b-has-answer" />
+                    <xsl:with-param name="b-has-solution"  select="$b-has-solution" />
+                </xsl:apply-templates>
+                <xsl:if test="$b-has-statement">
+                    <xsl:apply-templates select="conclusion"/>
+                </xsl:if>
+            </xsl:when>
+            <!-- Now no task possibility -->
             <xsl:otherwise>
                 <xsl:apply-templates select="." mode="exercise-components">
                     <xsl:with-param name="b-original" select="false()" />
@@ -5740,9 +5869,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                         </xsl:choose>
                     </xsl:for-each>
                 </xsl:if>
-                <xsl:if test="(hint and $b-has-hint) or (answer and $b-has-answer) or (solution and $b-has-solution)">
-                    <xsl:call-template name="exercise-component-separator" />
-                </xsl:if>
             </xsl:if>
             <xsl:if test="$b-has-hint">
                 <xsl:apply-templates select="hint">
@@ -5784,6 +5910,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:param name="b-has-answer" />
     <xsl:param name="b-has-solution" />
 
+    <xsl:call-template name="exercise-component-separator" />
     <xsl:apply-templates select="." mode="solution-heading">
         <xsl:with-param name="b-original" select="$b-original" />
         <xsl:with-param name="purpose" select="$purpose" />
@@ -5791,16 +5918,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:apply-templates>
         <xsl:with-param name="b-original" select="$b-original" />
     </xsl:apply-templates>
-    <xsl:choose>
-        <xsl:when test="following-sibling::hint">
-            <xsl:call-template name="exercise-component-separator" />
-        </xsl:when>
-        <xsl:otherwise>
-            <xsl:if test="(following-sibling::answer and $b-has-answer) or (following-sibling::solution and $b-has-solution)">
-                <xsl:call-template name="exercise-component-separator" />
-            </xsl:if>
-        </xsl:otherwise>
-    </xsl:choose>
 </xsl:template>
 
 <xsl:template match="answer">
@@ -5808,6 +5925,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:param name="purpose" />
     <xsl:param name="b-has-solution" />
 
+    <xsl:call-template name="exercise-component-separator" />
     <xsl:apply-templates select="." mode="solution-heading">
         <xsl:with-param name="b-original" select="$b-original" />
         <xsl:with-param name="purpose" select="$purpose" />
@@ -5815,22 +5933,13 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:apply-templates>
         <xsl:with-param name="b-original" select="$b-original" />
     </xsl:apply-templates>
-    <xsl:choose>
-        <xsl:when test="following-sibling::answer">
-            <xsl:call-template name="exercise-component-separator" />
-        </xsl:when>
-        <xsl:otherwise>
-            <xsl:if test="following-sibling::solution and $b-has-solution">
-                <xsl:call-template name="exercise-component-separator" />
-            </xsl:if>
-        </xsl:otherwise>
-    </xsl:choose>
 </xsl:template>
 
 <xsl:template match="solution">
     <xsl:param name="b-original" />
     <xsl:param name="purpose" />
 
+    <xsl:call-template name="exercise-component-separator" />
     <xsl:apply-templates select="." mode="solution-heading">
         <xsl:with-param name="b-original" select="$b-original" />
         <xsl:with-param name="purpose" select="$purpose" />
@@ -5838,10 +5947,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:apply-templates>
         <xsl:with-param name="b-original" select="$b-original" />
     </xsl:apply-templates>
-    <xsl:if test="following-sibling::solution">
-        <xsl:call-template name="exercise-component-separator" />
-    </xsl:if>
-    <!-- no final separator, solutions are last, let environment handle -->
 </xsl:template>
 
 <!-- Each component has a similar look, so we combine here -->
@@ -5854,7 +5959,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!-- NB: this is the only place \blocktitlefont is written into   -->
     <!-- the body, so a tcbcolorbox could be a great idea to maintain -->
     <!-- a separation between the preamble and body                   -->
-    <xsl:text>\textbf{\blocktitlefont </xsl:text>
+    <xsl:text>\noindent\textbf{\blocktitlefont </xsl:text>
     <xsl:apply-templates select="." mode="type-name" />
     <!-- An empty value means element is a singleton -->
     <!-- else the serial number comes through        -->
@@ -5909,9 +6014,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 </xsl:template>
 
 <xsl:template name="exercise-component-separator">
-    <!-- <xsl:text>\par\smallskip\noindent%&#xa;</xsl:text> -->
     <xsl:text>\par\smallskip%&#xa;</xsl:text>
-    <xsl:text>\noindent</xsl:text>
 </xsl:template>
 
 <!-- Exercise Group -->
@@ -5931,18 +6034,30 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     </xsl:if>
     <xsl:text>%&#xa;</xsl:text>
     <xsl:apply-templates select="introduction" />
+    <!-- sanitize the number of columns safely -->
+    <xsl:variable name="ncols">
+        <xsl:choose>
+            <xsl:when test="not(@cols)">
+                <xsl:text>1</xsl:text>
+            </xsl:when>
+            <xsl:when test="(@cols=1) or (@cols = 2) or (@cols = 3) or (@cols = 4) or (@cols = 5) or (@cols = 6)">
+                <xsl:value-of select="@cols"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:text>1</xsl:text>
+                <xsl:message>MBX:ERROR:   the @cols attribute of "exercisegroup" should be between 1 and 6 inclusive, not <xsl:value-of select="@cols"/>.  Using the default, 1 column.</xsl:message>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
     <xsl:choose>
-        <xsl:when test="not(@cols) or (@cols = 1)">
+        <xsl:when test="$ncols = 1">
             <xsl:text>\begin{exercisegroup}&#xa;</xsl:text>
         </xsl:when>
-        <xsl:when test="@cols = 2 or @cols = 3 or @cols = 4 or @cols = 5 or @cols = 6">
+        <xsl:otherwise>
             <xsl:text>\begin{exercisegroupcol}</xsl:text>
             <xsl:text>{</xsl:text>
-            <xsl:value-of select="@cols"/>
+            <xsl:value-of select="$ncols"/>
             <xsl:text>}&#xa;</xsl:text>
-        </xsl:when>
-        <xsl:otherwise>
-            <xsl:message terminate="yes">MBX:ERROR: invalid value <xsl:value-of select="@cols" /> for cols attribute of exercisegroup</xsl:message>
         </xsl:otherwise>
     </xsl:choose>
     <!-- an exercisegroup can only appear in an "exercises" division,    -->
@@ -6118,9 +6233,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:param name="b-has-answer" />
     <xsl:param name="b-has-solution" />
 
-    <xsl:if test="not(preceding-sibling::stage)">
-        <text>\leavevmode\par\noindent%&#xa;</text>
-    </xsl:if>
+    <xsl:apply-templates select="." mode="leave-vertical-mode"/>
     <!-- e.g., Part 2. -->
     <xsl:text>\textbf{</xsl:text>
     <xsl:call-template name="type-name">
@@ -6162,9 +6275,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     </xsl:variable>
 
     <xsl:if test="not($dry-run = '')">
-        <xsl:if test="not(preceding-sibling::stage)">
-            <text>\leavevmode\par\noindent%&#xa;</text>
-        </xsl:if>
+        <xsl:apply-templates select="." mode="leave-vertical-mode"/>
         <!-- e.g., Part 2. -->
         <xsl:text>\textbf{</xsl:text>
         <xsl:call-template name="type-name">
@@ -6172,7 +6283,8 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
         </xsl:call-template>
         <xsl:text> </xsl:text>
         <xsl:apply-templates select="." mode="serial-number" />
-        <xsl:text>.}\quad </xsl:text>
+        <xsl:text>.}&#xa;</xsl:text>
+        <!-- <xsl:text>\par\smallskip\noindent</xsl:text> -->
         <xsl:apply-templates select="." mode="exercise-components">
             <xsl:with-param name="b-original" select="$b-original"/>
             <xsl:with-param name="purpose" select="$purpose"/>
@@ -6212,7 +6324,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
         <!-- $b-has-webwork-reps, then on                              -->
         <!-- $document-root//webwork-reps/static//var[@form='buttons'] -->
         <xsl:when test="@form='buttons'" >
-            <xsl:text>\par&#xa;</xsl:text>
             <xsl:text>\begin{itemize}[label=$\odot$,leftmargin=3em,]&#xa;</xsl:text>
             <xsl:for-each select="li">
                 <xsl:text>\item{}</xsl:text>
@@ -6222,7 +6333,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
             <xsl:text>\end{itemize}&#xa;</xsl:text>
         </xsl:when>
         <xsl:when test="@form='checkboxes'" >
-            <xsl:text>\par&#xa;</xsl:text>
             <xsl:text>\begin{itemize*}[label=$\square$,leftmargin=3em,itemjoin=\hspace{4em plus 1em minus 3em}]&#xa;</xsl:text>
             <xsl:for-each select="li">
                 <xsl:if test="not(p[.='?']) and not(normalize-space(.)='?')">
@@ -6304,7 +6414,12 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
         <!-- prelude?, introduction?, task+, conclusion?, postlude? -->
         <xsl:when test="task">
             <xsl:apply-templates select="introduction"/>
-            <xsl:apply-templates select="task"/>
+            <xsl:apply-templates select="task">
+                <xsl:with-param name="b-has-statement" select="true()" />
+                <xsl:with-param name="b-has-hint"      select="$b-has-project-hint" />
+                <xsl:with-param name="b-has-answer"    select="$b-has-project-answer" />
+                <xsl:with-param name="b-has-solution"  select="$b-has-project-solution" />
+            </xsl:apply-templates>
             <xsl:apply-templates select="conclusion"/>
         </xsl:when>
         <xsl:otherwise>
@@ -6369,31 +6484,32 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
         <xsl:text>%&#xa;</xsl:text>
         <xsl:choose>
             <!-- structured versions first      -->
-            <!-- prelude?, introduction?, task+, conclusion?, postlude? -->
+            <!-- task+, conclusion?, postlude? -->
             <xsl:when test="task">
                 <xsl:if test="$b-has-statement">
                     <xsl:apply-templates select="introduction"/>
                 </xsl:if>
                 <xsl:apply-templates select="task" mode="solutions">
+                    <xsl:with-param name="b-original" select="false()" />
                     <xsl:with-param name="purpose" select="$purpose" />
                     <xsl:with-param name="b-has-statement" select="$b-has-statement" />
-                    <xsl:with-param name="b-has-hint" select="$b-has-hint" />
-                    <xsl:with-param name="b-has-answer" select="$b-has-answer" />
-                    <xsl:with-param name="b-has-solution" select="$b-has-solution" />
+                    <xsl:with-param name="b-has-hint"      select="$b-has-hint" />
+                    <xsl:with-param name="b-has-answer"    select="$b-has-answer" />
+                    <xsl:with-param name="b-has-solution"  select="$b-has-solution" />
                 </xsl:apply-templates>
                 <xsl:if test="$b-has-statement">
                     <xsl:apply-templates select="conclusion"/>
                 </xsl:if>
             </xsl:when>
-            <!-- Now no project/task possibility -->
+            <!-- Now no task possibility -->
             <xsl:otherwise>
                 <xsl:apply-templates select="." mode="exercise-components">
                     <xsl:with-param name="b-original" select="false()" />
                     <xsl:with-param name="purpose" select="$purpose" />
                     <xsl:with-param name="b-has-statement" select="$b-has-statement" />
-                    <xsl:with-param name="b-has-hint" select="$b-has-hint" />
-                    <xsl:with-param name="b-has-answer" select="$b-has-answer" />
-                    <xsl:with-param name="b-has-solution" select="$b-has-solution" />
+                    <xsl:with-param name="b-has-hint"      select="$b-has-hint" />
+                    <xsl:with-param name="b-has-answer"    select="$b-has-answer" />
+                    <xsl:with-param name="b-has-solution"  select="$b-has-solution" />
                 </xsl:apply-templates>
             </xsl:otherwise>
         </xsl:choose>
@@ -6405,10 +6521,15 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!-- no prelude as duplicating in solutions division -->
 </xsl:template>
 
-<!-- Task (a part of a project) -->
+<!-- Task (a part of an exercise or project) -->
 <!-- Parameterized, but with no defaults, since this -->
 <!-- is always a constituent of something larger     -->
 <xsl:template match="task">
+    <xsl:param name="b-has-statement"/>
+    <xsl:param name="b-has-hint"     />
+    <xsl:param name="b-has-answer"   />
+    <xsl:param name="b-has-solution" />
+
     <!-- if first at its level, start the list environment -->
     <xsl:if test="not(preceding-sibling::task)">
         <!-- set the label style of this list       -->
@@ -6446,16 +6567,22 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:choose>
         <xsl:when test="task">
             <xsl:apply-templates select="introduction"/>
-            <xsl:apply-templates select="task" />
+            <xsl:apply-templates select="task">
+                <xsl:with-param name="b-original" select="true()" />
+                <xsl:with-param name="b-has-statement" select="true()" />
+                <xsl:with-param name="b-has-hint" select="$b-has-hint" />
+                <xsl:with-param name="b-has-answer" select="$b-has-answer" />
+                <xsl:with-param name="b-has-solution" select="$b-has-solution" />
+            </xsl:apply-templates>
             <xsl:apply-templates select="conclusion"/>
         </xsl:when>
         <xsl:otherwise>
             <xsl:apply-templates select="." mode="exercise-components">
                 <xsl:with-param name="b-original" select="true()" />
                 <xsl:with-param name="b-has-statement" select="true()" />
-                <xsl:with-param name="b-has-hint" select="$b-has-project-hint" />
-                <xsl:with-param name="b-has-answer" select="$b-has-project-answer" />
-                <xsl:with-param name="b-has-solution" select="$b-has-project-solution" />
+                <xsl:with-param name="b-has-hint" select="$b-has-hint" />
+                <xsl:with-param name="b-has-answer" select="$b-has-answer" />
+                <xsl:with-param name="b-has-solution" select="$b-has-solution" />
             </xsl:apply-templates>
         </xsl:otherwise>
     </xsl:choose>
@@ -6538,9 +6665,9 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                 <xsl:apply-templates select="task" mode="solutions">
                     <xsl:with-param name="purpose" select="$purpose" />
                     <xsl:with-param name="b-has-statement" select="$b-has-statement" />
-                    <xsl:with-param name="b-has-hint" select="$b-has-hint" />
-                    <xsl:with-param name="b-has-answer" select="$b-has-answer" />
-                    <xsl:with-param name="b-has-solution" select="$b-has-solution" />
+                    <xsl:with-param name="b-has-hint"      select="$b-has-hint" />
+                    <xsl:with-param name="b-has-answer"    select="$b-has-answer" />
+                    <xsl:with-param name="b-has-solution"  select="$b-has-solution" />
                 </xsl:apply-templates>
                 <xsl:if test="$b-has-statement">
                     <xsl:apply-templates select="conclusion"/>
@@ -6551,9 +6678,9 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                     <xsl:with-param name="b-original" select="false()"/>
                     <xsl:with-param name="purpose" select="$purpose" />
                     <xsl:with-param name="b-has-statement" select="$b-has-statement" />
-                    <xsl:with-param name="b-has-hint" select="$b-has-hint" />
-                    <xsl:with-param name="b-has-answer" select="$b-has-answer" />
-                    <xsl:with-param name="b-has-solution" select="$b-has-solution" />
+                    <xsl:with-param name="b-has-hint"      select="$b-has-hint" />
+                    <xsl:with-param name="b-has-answer"    select="$b-has-answer" />
+                    <xsl:with-param name="b-has-solution"  select="$b-has-solution" />
                 </xsl:apply-templates>
             </xsl:otherwise>
         </xsl:choose>
@@ -6691,19 +6818,19 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!-- differences which we need to accomodate via abstract -->
 <!-- templates.                                           -->
 
+<!-- See the -common stylesheet for manipulations of math elements     -->
+<!-- and subsequent text nodes that lead with punctuation.  Basically, -->
+<!-- punctuation can migrate from the start of the text node and into  -->
+<!-- the math, wrapped in a \text{}.  We do this to display math as a  -->
+<!-- service to authors.  But LaTeX handles this situation carefully   -->
+<!-- for inline math.                                                  -->
+<xsl:variable name="math.punctuation.include" select="'display'"/>
+
 <!-- Inline Mathematics ("m") -->
 <!-- We use the asymmetric LaTeX delimiters \( and \).     -->
 <!-- For LaTeX these are not "robust", hence break moving  -->
 <!-- items (titles, index), so use the "fixltx2e" package, -->
 <!-- which declares \MakeRobust\( and \MakeRobust\)        -->
-<!-- Note: LaTeX, unlike HTML, needs no help with          -->
-<!-- clause-ending punctuation trailing inline math,       -->
-<!-- it always does the right thing.  So when the general  -->
-<!-- template for text nodes in -common goes to drop this  -->
-<!-- punctuation, it also checks the $latex-processing     -->
-<!-- global variable                                       -->
-<!-- NB: we should be able to use templates to make this   -->
-<!-- happen without the global variable                    -->
 
 <!-- These two templates provide the delimiters for -->
 <!-- inline math, implementing abstract templates.  -->
@@ -6714,12 +6841,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <xsl:template name="end-inline-math">
     <xsl:text>\)</xsl:text>
 </xsl:template>
-
-<!-- This is the override for LaTeX processing,        -->
-<!-- since punctuation following inline math is        -->
-<!-- not a problem for traditional TeX's line-breaking -->
-<xsl:template match="m" mode="get-clause-punctuation" />
-
 
 <!-- Displayed Single-Line Math ("me", "men") -->
 
@@ -8483,9 +8604,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!-- thing after a heading.  This could be excessive   -->
     <!-- if the cell is empty, but should not be harmful.  -->
     <!-- NB: maybe this should not even be called if all empty -->
-    <xsl:if test="not(preceding-sibling::*[not(&SUBDIVISION-METADATA-FILTER;)])">
-        <xsl:call-template name="leave-vertical-mode" />
-    </xsl:if>
+    <xsl:apply-templates select="." mode="leave-vertical-mode"/>
     <xsl:if test="$in!=''">
         <xsl:text>\begin{sageinput}&#xa;</xsl:text>
         <xsl:value-of select="$in" />
@@ -8670,8 +8789,22 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!-- Potential alternate solution: write a leading "empty" \mbox{}    -->
 <!-- http://tex.stackexchange.com/questions/171220/                   -->
 <!-- include-non-floating-graphic-in-a-theorem-environment            -->
-<xsl:template name="leave-vertical-mode">
-    <xsl:text>\leavevmode%&#xa;</xsl:text>
+<xsl:template match="sage" mode="leave-vertical-mode">
+    <xsl:if test="not(preceding-sibling::*[not(&SUBDIVISION-METADATA-FILTER;)])">
+        <xsl:text>\leavevmode%&#xa;</xsl:text>
+    </xsl:if>
+</xsl:template>
+
+<xsl:template match="sidebyside" mode="leave-vertical-mode">
+    <xsl:if test="not(preceding-sibling::*[not(&SUBDIVISION-METADATA-FILTER;)]) and parent::paragraphs">
+        <xsl:text>\leavevmode\par\noindent%&#xa;</xsl:text>
+    </xsl:if>
+</xsl:template>
+
+<xsl:template match="stage" mode="leave-vertical-mode">
+    <xsl:if test="not(preceding-sibling::stage)">
+        <xsl:text>\leavevmode\par\noindent%&#xa;</xsl:text>
+    </xsl:if>
 </xsl:template>
 
 <xsl:template match="figure|table|list|listing" mode="environment-name">
@@ -8816,6 +8949,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!-- headings, panels, captions.  Then put "\nopagebreak"       -->
     <!-- into the definition, so it is "hidden" and not in the body -->
 
+    <xsl:apply-templates select="." mode="leave-vertical-mode"/>
     <xsl:text>\begin{sidebyside}{</xsl:text>
     <xsl:value-of select="$number-panels" />
     <xsl:text>}{</xsl:text>
@@ -10999,109 +11133,4 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!-- Uninteresting Code, aka the Bad Bank                    -->
 <!-- Deprecated, unmaintained, etc, parked here out of sight -->
 
-<!-- "solution-list" was supported by elaborate -->
-<!-- modal templates, which are now renamed     -->
-<!-- 2018-07-04: some day remove all this code  -->
-
-<xsl:template match="solution-list">
-    <!-- TODO: check here once for backmatter switches set to "knowl", which is unrealizable -->
-    <xsl:apply-templates select="$document-root//exercises" mode="obsolete-backmatter" />
-</xsl:template>
-
-<!-- This is a hack that should go away when backmatter exercises are rethought -->
-<xsl:template match="title" mode="obsolete-backmatter" />
-
-<!-- Create a heading for each non-empty collection of solutions -->
-<!-- Format as appropriate LaTeX subdivision for this level      -->
-<!-- But number according to the actual Exercises section        -->
-<xsl:template match="exercises" mode="obsolete-backmatter">
-    <xsl:variable name="nonempty" select="(.//hint and $exercise.backmatter.hint='yes') or (.//answer and $exercise.backmatter.answer='yes') or (.//solution and $exercise.backmatter.solution='yes')" />
-    <xsl:if test="$nonempty='true'">
-        <xsl:text>\</xsl:text>
-        <xsl:apply-templates select="." mode="division-name" />
-        <xsl:text>*{</xsl:text>
-        <xsl:apply-templates select="." mode="number" />
-        <xsl:text> </xsl:text>
-        <xsl:apply-templates select="." mode="title-full" />
-        <xsl:text>}&#xa;</xsl:text>
-        <xsl:apply-templates select="*" mode="obsolete-backmatter" />
-    </xsl:if>
-</xsl:template>
-
-<!-- We kill the introduction and conclusion for -->
-<!-- the exercises and for the exercisegroups    -->
-<xsl:template match="exercises//introduction|exercises//conclusion" mode="obsolete-backmatter" />
-
-<!-- Print exercises with some solution component -->
-<!-- Respect switches about visibility ("knowl" is assumed to be 'no') -->
-<xsl:template match="exercise" mode="obsolete-backmatter">
-    <xsl:choose>
-        <xsl:when test="webwork-reps/static/stage and (webwork-reps/static/stage/hint or webwork-reps/static/stage/solution)">
-            <!-- Lead with the problem number and some space -->
-            <xsl:text>\noindent\textbf{</xsl:text>
-            <xsl:apply-templates select="." mode="serial-number" />
-            <xsl:text>.}\quad{}</xsl:text>
-            <!-- Within each stage enforce order -->
-            <xsl:apply-templates select="webwork-reps/static/stage" mode="obsolete-backmatter"/>
-        </xsl:when>
-        <xsl:when test="webwork-reps/static and (webwork-reps/static/hint or webwork-reps/static/solution)">
-            <!-- Lead with the problem number and some space -->
-            <xsl:text>\noindent\textbf{</xsl:text>
-            <xsl:apply-templates select="." mode="serial-number" />
-            <xsl:text>.}\quad{}</xsl:text>
-            <xsl:if test="$exercise.backmatter.statement='yes'">
-                <xsl:apply-templates select="webwork-reps/static/statement" />
-                <xsl:text>\par\smallskip&#xa;</xsl:text>
-            </xsl:if>
-            <xsl:if test="webwork-reps/static/hint and $exercise.backmatter.hint='yes'">
-                <xsl:apply-templates select="webwork-reps/static/hint" mode="obsolete-backmatter"/>
-            </xsl:if>
-            <xsl:if test="webwork-reps/static/solution and $exercise.backmatter.solution='yes'">
-                <xsl:apply-templates select="webwork-reps/static/solution" mode="obsolete-backmatter"/>
-            </xsl:if>
-        </xsl:when>
-        <xsl:when test="hint or answer or solution">
-            <!-- Lead with the problem number and some space -->
-            <xsl:text>\noindent\textbf{</xsl:text>
-            <xsl:apply-templates select="." mode="serial-number" />
-            <xsl:text>.}\quad{}</xsl:text>
-            <xsl:if test="$exercise.backmatter.statement='yes'">
-                <!-- TODO: not a "backmatter" template - make one possibly? Or not necessary -->
-                <xsl:apply-templates select="statement" />
-                <xsl:text>\par\smallskip&#xa;</xsl:text>
-            </xsl:if>
-            <xsl:if test="$document-root//hint and $exercise.backmatter.hint='yes'">
-                <xsl:apply-templates select="hint" mode="obsolete-backmatter" />
-            </xsl:if>
-            <xsl:if test="answer and $exercise.backmatter.answer='yes'">
-                <xsl:apply-templates select="answer" mode="obsolete-backmatter" />
-            </xsl:if>
-            <xsl:if test="solution and $exercise.backmatter.solution='yes'">
-                <xsl:apply-templates select="solution" mode="obsolete-backmatter" />
-            </xsl:if>
-        </xsl:when>
-    </xsl:choose>
-</xsl:template>
-
-<!-- For stages of a webwork exercise inside an exercises, we must respect  -->
-<!-- string parameters controlling whether to display parts.                -->
-<xsl:template match="webwork-reps/static/stage" mode="obsolete-backmatter">
-    <xsl:if test="$exercise.backmatter.statement='yes'">
-        <xsl:apply-templates select="statement" />
-        <xsl:text>\par\smallskip&#xa;</xsl:text>
-    </xsl:if>
-    <xsl:if test="hint and $exercise.backmatter.hint='yes'">
-        <xsl:apply-templates select="hint" mode="obsolete-backmatter"/>
-    </xsl:if>
-    <xsl:if test="solution and $exercise.backmatter.solution='yes'">
-        <xsl:apply-templates select="solution" mode="obsolete-backmatter"/>
-    </xsl:if>
-</xsl:template>
-
-<!-- We print hints, answers, solutions with no heading. -->
-<!-- TODO: make heading on solution components configurable -->
-<xsl:template match="exercise/hint|exercise/answer|exercise/solution|webwork-reps/static/hint|webwork-reps/static/stage/hint|webwork-reps/static/solution|webwork-reps/static/stage/solution" mode="obsolete-backmatter">
-    <xsl:apply-templates />
-    <xsl:text>\par\smallskip&#xa;</xsl:text>
-</xsl:template>
 </xsl:stylesheet>
