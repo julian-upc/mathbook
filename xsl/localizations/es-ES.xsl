@@ -130,8 +130,8 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <localization string-id='fn'><xsl:text>Nota a pie de página</xsl:text></localization>
     <!-- Lists and their items -->
     <!-- Translations needed for Spain Spanish -->
-    <!-- <localization string-id='list'><xsl:text>List</xsl:text></localization> -->
-    <!-- <localization string-id='li'><xsl:text>Item</xsl:text></localization> -->
+    <localization string-id='list'><xsl:text>Lista</xsl:text></localization>
+    <localization string-id='li'><xsl:text>Item</xsl:text></localization>
     <!-- A term (word) defined in a glossary -->
     <!-- <localization string-id='defined-term'><xsl:text>Term</xsl:text></localization> -->
     <!-- A regular paragraph, not the old sectioning structure -->
@@ -141,7 +141,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <localization string-id='divisionalexercise'><xsl:text>Ejercicio</xsl:text></localization>
     <!-- Translation needed for Spain Spanish -->
     <!-- See en-US file for distinctions here, do not repeat previous translation -->
-    <!-- <localization string-id='inlineexercise'><xsl:text>Checkpoint</xsl:text></localization> -->
+    <localization string-id='inlineexercise'><xsl:text>Ejercicio</xsl:text></localization>
     <!-- <localization string-id='worksheetexercise'><xsl:text>Worksheet Exercise</xsl:text></localization> -->
     <!-- <localization string-id='readingquestion'><xsl:text>Reading Question</xsl:text></localization> -->
     <localization string-id='webwork'><xsl:text>WeBWorK</xsl:text></localization>
@@ -183,9 +183,9 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <!-- Navigation Interface elements -->
     <!-- Assistive "skip to content" link -->
     <localization string-id='skip-to-content'><xsl:text>Salta al contenido principal</xsl:text></localization>
-    <localization string-id='previous'><xsl:text>Anterior</xsl:text></localization>
-    <localization string-id='up'><xsl:text>Arriba</xsl:text></localization>
-    <localization string-id='next'><xsl:text>Siguiente</xsl:text></localization>
+    <localization string-id='previous'><xsl:text>Ant</xsl:text></localization>
+    <localization string-id='up'><xsl:text>Arr</xsl:text></localization>
+    <localization string-id='next'><xsl:text>Sig</xsl:text></localization>
     <!-- Keep these short, so buttons are not overly wide, 4 characters maximum -->
     <!-- TODO: SHORTEN THESE -->
     <localization string-id='previous-short'><xsl:text>Anterior</xsl:text></localization>
